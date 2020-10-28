@@ -53,11 +53,9 @@ end
 
 local function isSolved(tube)
     --- complete = is full AND all drops have the same color 
-    if isFull(tube) then 
-        print("Step 3")
+    if isFull(tube) then         
         color = tube.drops[1].color
-        for _, drop in ipairs(tube.drops) do 
-            print("Step 4")
+        for _, drop in ipairs(tube.drops) do             
             if drop.color ~= color then return false end
         end
         return true
@@ -66,10 +64,8 @@ end
 
 local function isAllSolved()
     -- Are all tubes complete (or empty)
-    for _, t in ipairs(tubes) do 
-        print("Step 1")
-        if not isEmpty(t) then 
-            print("Step 2")
+    for _, t in ipairs(tubes) do         
+        if not isEmpty(t) then             
             if not (isSolved(t)) then return false end
         end
     end
@@ -106,14 +102,15 @@ local function removeDrop(tube, animate)
     -- if tube is empty then return nill
     if #tube.drops == 0 then return nil end
 
-    x, y = 50, 50
+    local x, y = tube.x, tube.y - tube.height/2 - 20
+    print(y)
     -- take the top most drop and move it to top of test tube.
     -- remove drop from tube drop collection.
     -- return drop
     local drop = tube.drops[#tube.drops]
 
     if animate then
-        transition.moveTo( drop, {x = x, y = x, time = 100})
+        transition.moveTo( drop, {x = x, y = y, time = 100})
         selectedDrop = drop
     else
         drop.x = x
@@ -192,15 +189,15 @@ local function startLevel(level)
             end
         end
     end
-
     
+    local seed = 42
+
     seq = {}
     rng.randomseed(42) 
     for k=1, 10 do table.insert( seq,rng.random(6) ) end
     print ( table.concat( seq," " ) )
     print("version of lua: " .. _VERSION)
 
-    local seed = 42
     rng.randomseed(seed)
 
     -- using nDifficulty randomise the starting position
