@@ -136,7 +136,10 @@ local function moveDrop( event )
         selectedDrop, fromTube = removeDrop(tube, true), tube
 
     elseif selectedDrop ~= nil and not isFull(tube) then
-        table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
+        --Don't add moves if moving to same tube
+        if tube ~= fromTube then
+            table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
+        end
         addDrop(selectedDrop, tube, true)
         selectedDrop, fromTube = nil
         if isAllSolved() then levelOver = true end
