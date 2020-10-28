@@ -13,6 +13,7 @@ local FULL = 4  -- number of drops to full a tube
 
 local tubes = { }
 local selectedDrop
+local fromTube
 
 local colorsRGB = require("colorsRGB")
 local colors = {
@@ -30,15 +31,11 @@ local timeRemaining
 local timeRemainingText
 local levelOver = false
 local movesText
-
-local function peekTable(t)
-    print(t)
-    for _, e in ipairs(t) do print(e.color) end
-end
+local undoText
 
 local function updateText()
     timeRemainingText.text = "Time remaining: " .. timeRemaining
-    movesText.text = "Moves: " .. moves
+    movesText.text = "Moves: " .. #moves
 end
 
 local function isEmpty(tube) 
@@ -82,11 +79,10 @@ local function addDrop(drop, tube, animate)
 
     --animate = user moved -> update moves
     if animate then
-        transition.moveTo( drop, {x = x, y = y, time = 100})
-        moves = moves - 1
-        updateText()
-        selectedDrop = nil
-    else 
+        print("Animating add to " .. tube.label)
+        transition.moveTo( drop, {x = x, y = y, time = 100})                        
+        updateText()        
+    else         
         drop.x = x
         drop.y = y
     end
@@ -99,25 +95,26 @@ end
 local function removeDrop(tube, animate) 
     -- remove and return the top drop from given tube or nil.
 
-    -- if tube is empty then return nill
+    -- if tube is empty then return nill       
     if #tube.drops == 0 then return nil end
 
-    local x, y = tube.x, tube.y - tube.height/2 - 20
-    print(y)
+    local x, y = tube.x, tube.y - tube.height/2 - 20    
     -- take the top most drop and move it to top of test tube.
     -- remove drop from tube drop collection.
     -- return drop
     local drop = tube.drops[#tube.drops]
 
     if animate then
+        print("Animating remove from " .. tube.label)
         transition.moveTo( drop, {x = x, y = y, time = 100})
         selectedDrop = drop
+        fromTube = tube        
     else
         drop.x = x
         drop.y = y
     end
 
-    table.remove( tube.drops, #tube.drops )
+    table.remove( tube.drops, #tube.drops )    
     -- drop.y = tube.y - tube.height/2 - 30
 
     return drop
@@ -149,10 +146,28 @@ local function moveDrop( event )
     if selectedDrop == nil and not isEmpty(tube) then                 
         removeDrop(tube, true)        
         
-    elseif not isFull(tube) then
-        addDrop(selectedDrop, tube, true)        
+    elseif selectedDrop ~= nil and not isFull(tube) then
+        addDrop(selectedDrop, tube, true)
+        table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})        
+        selectedDrop = nil
+        fromTube = nil
         if isAllSolved() then levelOver = true end
     end    
+end
+
+local function undoMove()
+    if #moves > 0 and selectedDrop == nil then
+        move = moves[#moves] 
+                 
+        removeDrop(move.to, true)        
+        addDrop(move.drop, move.from, true)
+
+        selectedDrop = nil
+        fromTube = nil
+
+        table.remove( moves, #moves )
+        updateText()
+    end
 end
 
 local function startLevel(level)
@@ -164,7 +179,10 @@ local function startLevel(level)
 
     --Set up text display for moves and timer
     movesText = display.newText( "Moves: ", display.contentWidth - 50, 20, native.systemFont, 12 )
-    timeRemainingText = display.newText( "Time remaining: ", display.contentWidth - 150, 20, native.systemFont, 12 )
+    timeRemainingText = display.newText( "Time remaining: ", 80, 20, native.systemFont, 12 )
+    undoText = display.newText( "UNDO", display.contentCenterX, 20, native.systemFont, 18 )
+
+    undoText:addEventListener("tap", undoMove)
 
     -- instaniate all of the tubes
         -- put in correct position
@@ -176,6 +194,7 @@ local function startLevel(level)
         tube.y = display.contentHeight - tube.height/2 - 20
         tube.x = display.contentCenterX + (k - .5 - nTubes/2) * 80
         tube.drops = {}
+        tube.label = "Tube " .. k
         tube:addEventListener("tap", moveDrop )
         table.insert( tubes, tube )
 
@@ -191,13 +210,6 @@ local function startLevel(level)
     end
     
     local seed = 42
-
-    seq = {}
-    rng.randomseed(42) 
-    for k=1, 10 do table.insert( seq,rng.random(6) ) end
-    print ( table.concat( seq," " ) )
-    print("version of lua: " .. _VERSION)
-
     rng.randomseed(seed)
 
     -- using nDifficulty randomise the starting position
@@ -214,8 +226,8 @@ local function startLevel(level)
         end
     end
 
-    -- initialise game variables (moves, etc)
-    moves = nDifficulty * 5
+    -- initialise game variables (moves, etc)    
+    moves = {}    
     timeRemaining = nDifficulty * 10 + 1
     updateClock()
 
