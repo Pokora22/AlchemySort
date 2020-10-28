@@ -87,15 +87,15 @@ local function isAllSolved()
     return true
 end
 
-local function addDrop(drop, tube, animate)
+local function addDrop(drop, tube, animate, callback)
     -- place drop into tube.
     table.insert( tube.drops, drop ) --place and append different?
     local x, y = tube.x, tube.y + tube.height / 2 + 8 - 34 * #tube.drops
-    transformDrop(drop, x, y, animate)
+    transformDrop(drop, x, y, animate, callback)
 end
 
 
-local function removeDrop(tube, animate)
+local function removeDrop(tube, animate, callback)
     -- remove and return the top drop from given tube or nil.
 
     -- if tube is empty then return nill
@@ -106,8 +106,8 @@ local function removeDrop(tube, animate)
     -- remove drop from tube drop collection.
     -- return drop
     local drop = tube.drops[#tube.drops]
-    transformDrop(drop, x, y, animate)
-    table.remove( tube.drops, #tube.drops )    
+    transformDrop(drop, x, y, animate, callback)
+    table.remove( tube.drops, #tube.drops )
 
     return drop
 
@@ -134,7 +134,7 @@ local function moveDrop( event )
        -- stop counddown clock
     if selectedDrop == nil and not isEmpty(tube) then
         selectedDrop, fromTube = removeDrop(tube, true), tube
-        
+
     elseif selectedDrop ~= nil and not isFull(tube) then
         table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
         addDrop(selectedDrop, tube, true)
@@ -147,8 +147,13 @@ local function undoMove()
     if #moves > 0 and selectedDrop == nil then
         local move = moves[#moves]
 
-        removeDrop(move.to, true)
-        addDrop(move.drop, move.from, true)
+        --Need to create the callback function first (inline doesn't wait for complete)
+        local function callAdd()
+            addDrop(move.drop, move.from, true)
+        end
+
+        removeDrop(move.to, true, callAdd)
+        -- addDrop(move.drop, move.from, true)
 
         table.remove( moves, #moves )
         updateText()
