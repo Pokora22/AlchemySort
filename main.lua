@@ -34,6 +34,10 @@ local function peekTable(t)
     for _, e in ipairs(t) do print(e.color) end
 end
 
+local function updateText()
+    timeRemainingText.text = "Time remaining: " .. timeRemaining
+    movesText.text = "Moves: " .. moves
+end
 
 local function isEmpty(tube) 
     -- Empty tube = has no drops
@@ -48,8 +52,10 @@ end
 local function isSolved(tube)
     --- complete = is full AND all drops have the same color 
     if isFull(tube) then 
-        color = tube[1].color
-        for _, drop in ipairs(tube) do 
+        print("Step 3")
+        color = tube.drops[1].color
+        for _, drop in ipairs(tube.drops) do 
+            print("Step 4")
             if drop.color ~= color then return false end
         end
         return true
@@ -59,8 +65,10 @@ end
 local function isAllSolved()
     -- Are all tubes complete (or empty)
     for _, t in ipairs(tubes) do 
+        print("Step 1")
         if not isEmpty(t) then 
-            if not (t.isSolved) then return false end
+            print("Step 2")
+            if not (isSolved(t)) then return false end
         end
     end
 
@@ -74,8 +82,12 @@ local function addDrop(drop, tube, animate)
     local x = tube.x
     local y = tube.y + tube.height / 2 + 8 - 34 * #tube.drops
 
+    --animate = user moved -> update moves
     if animate then
         transition.moveTo( drop, {x = x, y = y, time = 100})
+        moves = moves - 1
+        updateText()
+        selectedDrop = nil
     else 
         drop.x = x
         drop.y = y
@@ -92,10 +104,19 @@ local function removeDrop(tube, animate)
     -- if tube is empty then return nill
     if #tube.drops == 0 then return nil end
 
+    x, y = 50, 50
     -- take the top most drop and move it to top of test tube.
     -- remove drop from tube drop collection.
     -- return drop
     local drop = tube.drops[#tube.drops]
+
+    if animate then
+        transition.moveTo( drop, {x = x, y = x, time = 100})
+        selectedDrop = drop
+    else
+        drop.x = x
+        drop.y = y
+    end
 
     table.remove( tube.drops, #tube.drops )
     -- drop.y = tube.y - tube.height/2 - 30
@@ -103,11 +124,6 @@ local function removeDrop(tube, animate)
     return drop
 
 end 
-
-local function updateText()
-    timeRemainingText.text = "Time remaining: " .. timeRemaining
-    movesText.text = "Moves: " .. moves
-end
 
 local function updateClock()
     if not levelOver then
@@ -131,18 +147,13 @@ local function moveDrop( event )
 
     -- if game is solved
        -- stop counddown clock
-    if selectedDrop == nil and not isEmpty(tube) then         
-        selectedDrop = tube.drops[#tube.drops]                  
+    if selectedDrop == nil and not isEmpty(tube) then                 
         removeDrop(tube, true)        
-        transition.moveTo( selectedDrop, {x = 50, y = 50, time = 100})
+        
     elseif not isFull(tube) then
-        addDrop(selectedDrop, tube, true)
-        selectedDrop = nil
-        moves = moves - 1
-        updateText()
-    end
-
-    if isAllSolved() then levelOver = true end
+        addDrop(selectedDrop, tube, true)        
+        if isAllSolved() then levelOver = true end
+    end    
 end
 
 local function startLevel(level)
