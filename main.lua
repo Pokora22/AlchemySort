@@ -5,7 +5,7 @@
 -----------------------------------------------------------------------------------------
 
 -- Your code here
-rng = require("rng")
+local rng = require("rng")
 
 display.setStatusBar(display.HiddenStatusBar);
 
@@ -38,21 +38,38 @@ local function updateText()
     movesText.text = "Moves: " .. #moves
 end
 
-local function isEmpty(tube) 
+local function transformDrop(drop, x, y, animate, callback)
+    if animate then
+        if callback == nil then
+            --animate
+            transition.moveTo( drop, {x = x, y = y, time = 100})
+        else
+            --animate onComplete
+            transition.moveTo( drop, {x = x, y = y, time = 100, onComplete = callback})
+        end
+        updateText()
+    else
+        --set position
+        drop.x = x
+        drop.y = y
+    end
+end
+
+local function isEmpty(tube)
     -- Empty tube = has no drops
     return #tube.drops == 0
-end 
+end
 
-local function isFull(tube) 
+local function isFull(tube)
     -- Full tube = has FULL drops
     return #tube.drops == FULL
 end
 
 local function isSolved(tube)
-    --- complete = is full AND all drops have the same color 
-    if isFull(tube) then         
-        color = tube.drops[1].color
-        for _, drop in ipairs(tube.drops) do             
+    --- complete = is full AND all drops have the same color
+    if isFull(tube) then
+        local color = tube.drops[1].color
+        for _, drop in ipairs(tube.drops) do
             if drop.color ~= color then return false end
         end
         return true
@@ -61,65 +78,40 @@ end
 
 local function isAllSolved()
     -- Are all tubes complete (or empty)
-    for _, t in ipairs(tubes) do         
-        if not isEmpty(t) then             
+    for _, t in ipairs(tubes) do
+        if not isEmpty(t) then
             if not (isSolved(t)) then return false end
         end
     end
 
     return true
-end 
+end
 
 local function addDrop(drop, tube, animate)
-    -- place drop into tube. 
+    -- place drop into tube.
     table.insert( tube.drops, drop ) --place and append different?
-
-    local x = tube.x
-    local y = tube.y + tube.height / 2 + 8 - 34 * #tube.drops
-
-    --animate = user moved -> update moves
-    if animate then
-        print("Animating add to " .. tube.label)
-        transition.moveTo( drop, {x = x, y = y, time = 100})                        
-        updateText()        
-    else         
-        drop.x = x
-        drop.y = y
-    end
-
-    -- change drop position so that it is 'inside tube' and 'on top' of other drops 
-    -- append drop to tube drop collection
+    local x, y = tube.x, tube.y + tube.height / 2 + 8 - 34 * #tube.drops
+    transformDrop(drop, x, y, animate)
 end
 
 
-local function removeDrop(tube, animate) 
+local function removeDrop(tube, animate)
     -- remove and return the top drop from given tube or nil.
 
-    -- if tube is empty then return nill       
+    -- if tube is empty then return nill
     if #tube.drops == 0 then return nil end
 
-    local x, y = tube.x, tube.y - tube.height/2 - 20    
+    local x, y = tube.x, tube.y - tube.height/2 - 20
     -- take the top most drop and move it to top of test tube.
     -- remove drop from tube drop collection.
     -- return drop
     local drop = tube.drops[#tube.drops]
-
-    if animate then
-        print("Animating remove from " .. tube.label)
-        transition.moveTo( drop, {x = x, y = y, time = 100})
-        selectedDrop = drop
-        fromTube = tube        
-    else
-        drop.x = x
-        drop.y = y
-    end
-
+    transformDrop(drop, x, y, animate)
     table.remove( tube.drops, #tube.drops )    
-    -- drop.y = tube.y - tube.height/2 - 30
 
     return drop
 
-end 
+end
 
 local function updateClock()
     if not levelOver then
@@ -128,42 +120,35 @@ local function updateClock()
     end
 end
 
-
-local function moveDrop( event ) 
+local function moveDrop( event )
     -- Pick up/drop a drop from/to selected tube.
 
     local tube = event.target
-
-    
-    -- if selectedDrop is nil then 
+    -- if selectedDrop is nil then
        -- remove drop from selected tubeand save it to selectedDrop
-    -- 
+    --
        -- place selectedDrop to selected tube if allowed
        -- upate moves count
 
     -- if game is solved
        -- stop counddown clock
-    if selectedDrop == nil and not isEmpty(tube) then                 
-        removeDrop(tube, true)        
+    if selectedDrop == nil and not isEmpty(tube) then
+        selectedDrop, fromTube = removeDrop(tube, true), tube
         
     elseif selectedDrop ~= nil and not isFull(tube) then
+        table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
         addDrop(selectedDrop, tube, true)
-        table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})        
-        selectedDrop = nil
-        fromTube = nil
+        selectedDrop, fromTube = nil
         if isAllSolved() then levelOver = true end
-    end    
+    end
 end
 
 local function undoMove()
     if #moves > 0 and selectedDrop == nil then
-        move = moves[#moves] 
-                 
-        removeDrop(move.to, true)        
-        addDrop(move.drop, move.from, true)
+        local move = moves[#moves]
 
-        selectedDrop = nil
-        fromTube = nil
+        removeDrop(move.to, true)
+        addDrop(move.drop, move.from, true)
 
         table.remove( moves, #moves )
         updateText()
@@ -189,8 +174,8 @@ local function startLevel(level)
         -- table property drops to store drops
         -- add tap event lisenter to call moveDrop
         -- first nColors start being full of drops of one color
-    for k = 1, nTubes do 
-        tube = display.newImageRect("assets/tube.png", 70, 197);
+    for k = 1, nTubes do
+        local tube = display.newImageRect("assets/tube.png", 70, 197);
         tube.y = display.contentHeight - tube.height/2 - 20
         tube.x = display.contentCenterX + (k - .5 - nTubes/2) * 80
         tube.drops = {}
@@ -199,8 +184,8 @@ local function startLevel(level)
         table.insert( tubes, tube )
 
         if k <= nColors then
-            for d = 1, FULL do 
-                drop = display.newCircle(0, 0, 16);
+            for d = 1, FULL do
+                local drop = display.newCircle(0, 0, 16);
                 drop.color = colors[k]
                 drop:setFillColor(colorsRGB.RGB(colors[k]));
 
@@ -208,30 +193,30 @@ local function startLevel(level)
             end
         end
     end
-    
+
     local seed = 42
     rng.randomseed(seed)
 
     -- using nDifficulty randomise the starting position
-       -- possible algorithm: 
+       -- possible algorithm:
           -- pick random source and destination tubes and move drop if allowed.
           -- repeat based on nDifficulty
-    for k = 1, nDifficulty do 
+    for k = 1, nDifficulty do
         local fromTube = tubes[rng.random( #tubes )]
         local toTube = tubes[rng.random( #tubes )]
 
-        if fromTube ~= toTube and not isEmpty(fromTube) and not isFull(toTube) then 
+        if fromTube ~= toTube and not isEmpty(fromTube) and not isFull(toTube) then
             local drop = removeDrop(fromTube)
             addDrop(drop, toTube, false)
         end
     end
 
-    -- initialise game variables (moves, etc)    
-    moves = {}    
+    -- initialise game variables (moves, etc)
+    moves = {}
     timeRemaining = nDifficulty * 10 + 1
     updateClock()
 
-    -- start countdown clock     
+    -- start countdown clock
     timer.performWithDelay( 1000, updateClock, 0 )
        -- Use timer.performWithDelay with 1 second delay
        -- Need function updateClock to update timeRemaining and text label

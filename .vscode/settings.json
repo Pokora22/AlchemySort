@@ -1,5 +1,9 @@
 {
     "Lua.diagnostics.globals": [
-        "transition"
+        "transition",
+        "display",
+        "unpack",
+        "native",
+        "timer"
     ]
 }
