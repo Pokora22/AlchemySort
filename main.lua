@@ -5,6 +5,8 @@
 -----------------------------------------------------------------------------------------
 
 -- Your code here
+rng = require("rng")
+
 display.setStatusBar(display.HiddenStatusBar);
 
 local FULL = 4  -- number of drops to full a tube
@@ -167,7 +169,6 @@ local function startLevel(level)
     movesText = display.newText( "Moves: ", display.contentWidth - 50, 20, native.systemFont, 12 )
     timeRemainingText = display.newText( "Time remaining: ", display.contentWidth - 150, 20, native.systemFont, 12 )
 
-
     -- instaniate all of the tubes
         -- put in correct position
         -- table property drops to store drops
@@ -192,16 +193,23 @@ local function startLevel(level)
         end
     end
 
+    
+    seq = {}
+    rng.randomseed(42) 
+    for k=1, 10 do table.insert( seq,rng.random(6) ) end
+    print ( table.concat( seq," " ) )
+    print("version of lua: " .. _VERSION)
+
     local seed = 42
-    math.randomseed(seed)
+    rng.randomseed(seed)
 
     -- using nDifficulty randomise the starting position
        -- possible algorithm: 
           -- pick random source and destination tubes and move drop if allowed.
           -- repeat based on nDifficulty
-    for k = 1, nDifficulty * 5 do 
-        local fromTube = tubes[math.random( #tubes )]
-        local toTube = tubes[math.random( #tubes )]
+    for k = 1, nDifficulty do 
+        local fromTube = tubes[rng.random( #tubes )]
+        local toTube = tubes[rng.random( #tubes )]
 
         if fromTube ~= toTube and not isEmpty(fromTube) and not isFull(toTube) then 
             local drop = removeDrop(fromTube)
@@ -221,4 +229,4 @@ local function startLevel(level)
 
 end
 
-startLevel({3, 2, 5, 90})
+startLevel({3, 2, 100, 90})
