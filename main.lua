@@ -32,6 +32,10 @@ local timeRemainingText
 local levelOver = false
 local movesText
 local undoText
+local resetText
+local levelSeed
+
+local resetLevel = nil
 
 local function updateText()
     timeRemainingText.text = "Time remaining: " .. timeRemaining
@@ -39,14 +43,10 @@ local function updateText()
 end
 
 local function transformDrop(drop, x, y, animate, callback)
-    if animate then
-        if callback == nil then
-            --animate
-            transition.moveTo( drop, {x = x, y = y, time = 100})
-        else
-            --animate onComplete
-            transition.moveTo( drop, {x = x, y = y, time = 100, onComplete = callback})
-        end
+    if animate then        
+        --animate onComplete
+        transition.moveTo( drop, {x = x, y = y, time = 100, onComplete = callback})
+        
         updateText()
     else
         --set position
@@ -146,16 +146,16 @@ local function moveDrop( event )
     end
 end
 
-local function undoMove()
+local function undoMove(animate)
     if #moves > 0 and selectedDrop == nil then
         local move = moves[#moves]
 
         --Need to create the callback function first (inline doesn't wait for complete)
         local function callAdd()
-            addDrop(move.drop, move.from, true)
+            addDrop(move.drop, move.from, animate)
         end
 
-        removeDrop(move.to, true, callAdd)
+        removeDrop(move.to, animate, callAdd)
         -- addDrop(move.drop, move.from, true)
 
         table.remove( moves, #moves )
@@ -167,15 +167,17 @@ local function startLevel(level)
     -- create level with given parameters
 
     -- number of colors, number of spare tubes, level difficulty and duration
-    local nColors, nSwap, nDifficulty, duration = unpack(level)
+    local nColors, nSwap, nDifficulty, duration, seed = unpack(level)
     local nTubes = nColors + nSwap
 
     --Set up text display for moves and timer
     movesText = display.newText( "Moves: ", display.contentWidth - 50, 20, native.systemFont, 12 )
     timeRemainingText = display.newText( "Time remaining: ", 80, 20, native.systemFont, 12 )
-    undoText = display.newText( "UNDO", display.contentCenterX, 20, native.systemFont, 18 )
+    undoText = display.newText( "UNDO", display.contentCenterX - 40, 20, native.systemFont, 18 )
+    resetText = display.newText( "RESET", display.contentCenterX + 40, 20, native.systemFont, 18 )
 
     undoText:addEventListener("tap", undoMove)
+    resetText:addEventListener("tap", resetLevel)
 
     -- instaniate all of the tubes
         -- put in correct position
@@ -202,8 +204,8 @@ local function startLevel(level)
         end
     end
 
-    local seed = 42
-    rng.randomseed(seed)
+    levelSeed = seed and seed or 42    
+    rng.randomseed(levelSeed)
 
     -- using nDifficulty randomise the starting position
        -- possible algorithm:
@@ -221,7 +223,7 @@ local function startLevel(level)
 
     -- initialise game variables (moves, etc)
     moves = {}
-    timeRemaining = nDifficulty * 10 + 1
+    timeRemaining = duration + 1
     updateClock()
 
     -- start countdown clock
@@ -229,6 +231,15 @@ local function startLevel(level)
        -- Use timer.performWithDelay with 1 second delay
        -- Need function updateClock to update timeRemaining and text label
 
+end
+
+resetLevel = function()
+    moves = {}
+    
+    for _, tube in ipairs(tubes) do 
+        tube:removeSelf()
+    end
+    startLevel({3, 2, 100, 90, levelSeed})
 end
 
 startLevel({3, 2, 100, 90})
