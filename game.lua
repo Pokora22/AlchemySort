@@ -29,11 +29,9 @@ local colors = {
 
 local moves
 local timeRemaining
-local timeRemainingText
 local levelOver = false
 local movesText
-local undoText
-local resetText
+local undoText, resetText, hintText, solveText, timeRemainingText
 local levelSeed
 local levelParams
 local gameTimer
@@ -123,6 +121,45 @@ local function removeDrop(tube, animate, callback)
 
 end
 
+
+local function isValidMove(from, to)
+    --is valid if from is not empty and to is not full
+    --is good if from top color is same as to top color
+end
+
+local function calcScore()
+	local score = 0	
+    --for each tube count up consecutive drops from 1 to #drops 
+	for _, tube in ipairs(tubes) do		
+		local count = 1
+		if not isEmpty(tube) then 			
+			local color = tube.drops[1].color
+			for i = 2, #tube.drops do
+				if tube.drops[i].color == color then count = count + 1
+				else break end
+			end		
+		end
+		score = score + 2 ^ count
+	end
+	
+	print(score)
+	return score
+end
+
+local function hint()
+
+end
+
+local function solve()
+    local solution = {}
+
+    local function dfs(depth, maxDepth)
+
+    end
+
+    -- dfs(1, 3)
+end
+
 local function updateClock()
     if not levelOver then
         timeRemaining = timeRemaining - 1
@@ -192,11 +229,14 @@ function scene:create( event )
     --Set up text display for moves and timer
     movesText = display.newText (sceneGroup, "Moves: ", display.contentWidth - 50, 20, native.systemFont, 12 )
     timeRemainingText = display.newText( sceneGroup, "Time remaining: ", 80, 20, native.systemFont, 12 )
-    undoText = display.newText( sceneGroup, "UNDO", display.contentCenterX - 40, 20, native.systemFont, 18 )
-    resetText = display.newText( sceneGroup, "RESET", display.contentCenterX + 40, 20, native.systemFont, 18 )
+    undoText = display.newText( sceneGroup, "UNDO", display.contentCenterX - 70, 20, native.systemFont, 14 )
+	resetText = display.newText( sceneGroup, "RESET", undoText.x + undoText.width + 10, 20, native.systemFont, 14 )
+	hintText = display.newText( sceneGroup, "HINT", resetText.x + resetText.width , 20, native.systemFont, 14 )
+	solveText = display.newText( sceneGroup, "SOLVE", hintText.x + hintText.width + 12, 20, native.systemFont, 14 )
 
     undoText:addEventListener("tap", undoMove)
-    resetText:addEventListener("tap", resetLevel)
+	resetText:addEventListener("tap", resetLevel)
+	hintText:addEventListener("tap", calcScore)
 
     -- instaniate all of the tubes
         -- put in correct position
