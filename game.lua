@@ -31,7 +31,7 @@ local moves
 local timeRemaining
 local levelOver = false
 local movesText
-local undoText, resetText, hintText, solveText, timeRemainingText
+local undoText, resetText, hintText, solveText, timeRemainingText, hintUserText
 local levelSeed
 local levelParams
 local gameTimer
@@ -95,39 +95,6 @@ local function isAllSolved()
     return true
 end
 
-local function addDrop(drop, tube, animate, callback)
-	-- place drop into tube.
-	if drop == nil then print("WARNING DROP NIL IN ADD") end
-    table.insert( tube.drops, drop ) --place and append different?
-    local x, y = tube.x, tube.y + tube.height / 2 + 8 - 34 * #tube.drops
-    translateDrop(drop, x, y, animate, callback)
-end
-
-
-local function removeDrop(tube, animate, callback)
-    -- remove and return the top drop from given tube or nil.
-
-    -- if tube is empty then return nill
-    if #tube.drops == 0 then return nil end
-
-    local x, y = tube.x, tube.y - tube.height/2 - 20
-    -- take the top most drop and move it to top of test tube.
-    -- remove drop from tube drop collection.
-    -- return drop
-    local drop = tube.drops[#tube.drops]
-    translateDrop(drop, x, y, animate, callback)
-    table.remove( tube.drops, #tube.drops )
-
-	if drop == nil then print("WARNING DROP NIL IN REMOVE") end
-    return drop
-end
-
-
-local function isValidMove(from, to)
-    --is valid if from is not empty and to is not full
-    --is good if from top color is same as to top color
-end
-
 local function calcScore()
 	local score = 0	
     --for each tube count up consecutive drops from 1 to #drops 
@@ -146,55 +113,89 @@ local function calcScore()
 	return score
 end
 
-local function hint()
+local function addDrop(drop, tube, animate, callback)
+	-- place drop into tube.	
+    table.insert( tube.drops, drop ) --place and append different?
+    local x, y = tube.x, tube.y + tube.height / 2 + 8 - 34 * #tube.drops
+	translateDrop(drop, x, y, animate, callback)
+end
+
+
+local function removeDrop(tube, animate, callback)
+    -- remove and return the top drop from given tube or nil.
+
+    -- if tube is empty then return nill
+    if #tube.drops == 0 then return nil end
+
+    local x, y = tube.x, tube.y - tube.height/2 - 20
+    -- take the top most drop and move it to top of test tube.
+    -- remove drop from tube drop collection.
+    -- return drop
+    local drop = tube.drops[#tube.drops]
+    translateDrop(drop, x, y, animate, callback)
+	table.remove( tube.drops, #tube.drops )
+		
+    return drop
+end
+
+
+local function isValidMove(from, to)
+    --is valid if from is not empty and to is not full
+    --is good if from top color is same as to top color
+end
+
+local function dfs(depth, maxDepth)
+	local indent = ""
+	for i = 1, depth do indent = indent .. "\t" end
+	
+	local move = {from = 1, to = 1, score = -1}
+
+	if depth > maxDepth then 
+		move = {from = 1, to = 1, score = calcScore()}		
+		return move
+	end	
+
+	for iFrom = 1, #tubes do
+		local fromTube = tubes[iFrom]
+		
+		if not isEmpty(fromTube) and not isSolved(fromTube) then				
+			local drop = fromTube.drops[#fromTube.drops]
+
+			for iTo = 1, #tubes do 
+				local toTube = tubes[iTo]
+
+				if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
+					addDrop(removeDrop(fromTube), toTube)
+
+					-- print(indent, "from:" .. iFrom, "to:" .. iTo, "...")
+					local score = dfs(depth + 1, maxDepth).score
+					print(indent, "from:" .. iFrom, "to:" .. iTo, "score:" .. score)
+
+					if score > move.score then 
+						move = { from = iFrom, to = iTo, score = score}
+					end
+						
+					addDrop(removeDrop(toTube), fromTube)					
+				end					
+			end
+		else
+			print(indent, "from:" .. iFrom, (isSolved(fromTube) and "solved") or "empty")
+		end			
+	end
+
+	print(indent .. "Best move(?): from:" .. move.from .. " to:" .. move.to)
+	return move
 
 end
 
+local function hint()
+	local move = dfs(1, 1)
+	local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
+	hintUserText.text = hint
+end
+
 local function solve()
-	local solution = {}	
-
-	local function dfs(depth, maxDepth)
-		local indent = ""
-		for i = 1, depth do indent = indent .. "\t" end
-		
-		if depth > maxDepth then 
-			return calcScore()
-		end
-
-		local move = {from = 1, to = 1, score = -1}
-
-		for iFrom = 1, #tubes do
-			local fromTube = tubes[iFrom]
-			
-			if not isEmpty(fromTube) and not isSolved(fromTube) then				
-				local drop = fromTube.drops[#fromTube.drops]
-
-				for iTo = 1, #tubes do 
-					local toTube = tubes[iTo]
-
-					if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
-						addDrop(removeDrop(fromTube), toTube)
-
-						print(indent, "from:" .. iFrom, "to:" .. iTo, "...")
-						local score = dfs(depth + 1, maxDepth)
-						print(indent, "from:" .. iFrom, "to:" .. iTo, "score:" .. score)
-
-						if score > move.score then 
-							move = { from = iFrom, to = iTo, score = score}
-						else
-							addDrop(removeDrop(toTube), fromTube)
-						end
-					end					
-				end
-			else
-				print(indent, "from:" .. iFrom, ("solved" and isSolved(fromTube)) or "empty")
-			end			
-		end
-
-		print(indent .. "Best move(?): from:" .. move.from .. " to:" .. move.to)
-		return move.score
-
-    end
+	local solution = {}		
 
     dfs(1, 2)
 end
@@ -230,7 +231,8 @@ local function moveDrop( event )
             table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
         end
         addDrop(selectedDrop, tube, true)
-        selectedDrop, fromTube = nil
+		selectedDrop, fromTube = nil
+		hintUserText.text = ""
         if isAllSolved() then levelOver = true end
     end
 end
@@ -272,11 +274,17 @@ function scene:create( event )
 	resetText = display.newText( sceneGroup, "RESET", undoText.x + undoText.width + 10, 20, native.systemFont, 14 )
 	hintText = display.newText( sceneGroup, "HINT", resetText.x + resetText.width , 20, native.systemFont, 14 )
 	solveText = display.newText( sceneGroup, "SOLVE", hintText.x + hintText.width + 12, 20, native.systemFont, 14 )
+	hintUserText = display.newText( sceneGroup, "", hintText.x, 40, native.systemFont, 14 )
+
+	local function printScore()
+		print(calcScore())
+	end
 
     undoText:addEventListener("tap", undoMove)
 	resetText:addEventListener("tap", resetLevel)
-	hintText:addEventListener("tap", calcScore)
+	hintText:addEventListener("tap", hint)
 	solveText:addEventListener("tap", solve)
+	movesText:addEventListener("tap", printScore)
 
     -- instaniate all of the tubes
         -- put in correct position
