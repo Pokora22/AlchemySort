@@ -189,14 +189,13 @@ local function dfs(depth, maxDepth)
 end
 
 local function hint()
-	local move = dfs(1, 1)
+	local move = dfs(1, 2)
 	local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
 	hintUserText.text = hint
 end
 
 local function solve()
-	local solution = {}		
-
+	local solution = {}
     dfs(1, 2)
 end
 
