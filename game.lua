@@ -50,7 +50,7 @@ local function updateText()
     movesText.text = "Moves: " .. #moves
 end
 
-local function transformDrop(drop, x, y, animate, callback)
+local function translateDrop(drop, x, y, animate, callback)
     if animate then
         --animate onComplete
         transition.moveTo( drop, {x = x, y = y, time = 100, onComplete = callback})
@@ -96,10 +96,11 @@ local function isAllSolved()
 end
 
 local function addDrop(drop, tube, animate, callback)
-    -- place drop into tube.
+	-- place drop into tube.
+	if drop == nil then print("WARNING DROP NIL IN ADD") end
     table.insert( tube.drops, drop ) --place and append different?
     local x, y = tube.x, tube.y + tube.height / 2 + 8 - 34 * #tube.drops
-    transformDrop(drop, x, y, animate, callback)
+    translateDrop(drop, x, y, animate, callback)
 end
 
 
@@ -114,11 +115,11 @@ local function removeDrop(tube, animate, callback)
     -- remove drop from tube drop collection.
     -- return drop
     local drop = tube.drops[#tube.drops]
-    transformDrop(drop, x, y, animate, callback)
+    translateDrop(drop, x, y, animate, callback)
     table.remove( tube.drops, #tube.drops )
 
+	if drop == nil then print("WARNING DROP NIL IN REMOVE") end
     return drop
-
 end
 
 
@@ -141,7 +142,7 @@ local function calcScore()
 		end
 		score = score + 2 ^ count
 	end
-		
+
 	return score
 end
 
@@ -165,7 +166,7 @@ local function solve()
 		for iFrom = 1, #tubes do
 			local fromTube = tubes[iFrom]
 			
-			if not isEmpty(fromTube) and not isSolved(fromTube) then
+			if not isEmpty(fromTube) and not isSolved(fromTube) then				
 				local drop = fromTube.drops[#fromTube.drops]
 
 				for iTo = 1, #tubes do 
@@ -174,24 +175,28 @@ local function solve()
 					if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
 						addDrop(removeDrop(fromTube), toTube)
 
-						print(indent, iFrom, iTo, "...")
+						print(indent, "from:" .. iFrom, "to:" .. iTo, "...")
 						local score = dfs(depth + 1, maxDepth)
-						print(indent, iFrom, iTo, score)
+						print(indent, "from:" .. iFrom, "to:" .. iTo, "score:" .. score)
 
 						if score > move.score then 
 							move = { from = iFrom, to = iTo, score = score}
+						else
+							addDrop(removeDrop(toTube), fromTube)
 						end
-					end
+					end					
 				end
 			else
-				print(indent, iFrom, ("solved" and isSolved(fromTube)) or "empty")
-			end
-
+				print(indent, "from:" .. iFrom, ("solved" and isSolved(fromTube)) or "empty")
+			end			
 		end
+
+		print(indent .. "Best move(?): from:" .. move.from .. " to:" .. move.to)
+		return move.score
 
     end
 
-    dfs(1, 3)
+    dfs(1, 2)
 end
 
 local function updateClock()
@@ -322,7 +327,7 @@ function scene:create( event )
     -- initialise game variables (moves, etc)
     moves = {}
     timeRemaining = duration + 1
-    updateClock()
+	updateClock()
 end
 
 
