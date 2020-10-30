@@ -99,8 +99,9 @@ local function calcScore()
 	local score = 0	
     --for each tube count up consecutive drops from 1 to #drops 
 	for _, tube in ipairs(tubes) do		
-		local count = 1
+		local count = 0
 		if not isEmpty(tube) then 			
+			count = 1
 			local color = tube.drops[1].color
 			for i = 2, #tube.drops do
 				if tube.drops[i].color == color then count = count + 1
@@ -144,11 +145,12 @@ local function isValidMove(from, to)
     --is good if from top color is same as to top color
 end
 
-local function dfs(depth, maxDepth)
+local function dfs(depth, maxDepth, score)
 	local indent = ""
 	for i = 1, depth do indent = indent .. "\t" end
 	
-	local move = {from = 1, to = 1, score = -1}
+	if score == nil then score = -1 end
+	local move = {from = 1, to = 1, score = score}
 
 	if depth > maxDepth then 
 		move = {from = 1, to = 1, score = calcScore()}		
@@ -168,8 +170,16 @@ local function dfs(depth, maxDepth)
 					addDrop(removeDrop(fromTube), toTube)
 
 					-- print(indent, "from:" .. iFrom, "to:" .. iTo, "...")
-					local score = dfs(depth + 1, maxDepth).score
-					print(indent, "from:" .. iFrom, "to:" .. iTo, "score:" .. score)
+					if depth ~= maxDepth then
+						print(indent, "from:" .. iFrom, "to:" .. iTo, "score:" .. calcScore() )
+					end
+					local score = dfs(depth + 1, maxDepth, move.score).score
+					if depth == maxDepth then
+						print(indent, "from:" .. iFrom, "to:" .. iTo, "score:" .. score)
+					else
+						print(indent, "Best so far: from:" .. iFrom, "to:" .. iTo, "score:" .. score .. "\n")
+					end
+					
 
 					if score > move.score then 
 						move = { from = iFrom, to = iTo, score = score}
@@ -183,13 +193,14 @@ local function dfs(depth, maxDepth)
 		end			
 	end
 
-	print(indent .. "Best move(?): from:" .. move.from .. " to:" .. move.to)
+	-- print(indent .. "Best move(?): from:" .. move.from .. " to:" .. move.to )
 	return move
 
 end
 
 local function hint()
 	local move = dfs(1, 2)
+	print("\n\n")
 	local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
 	hintUserText.text = hint
 end

@@ -10,8 +10,7 @@ local scene = composer.newScene()
 local timerChangeScene
 local params
 
-local function changeScene()
-	print(params)
+local function changeScene()	
     composer.gotoScene( "game", { time=300, effect="crossFade", params = params } )
 end
 
@@ -25,8 +24,7 @@ end
 function scene:create( event )
 
 	local sceneGroup = self.view
-	-- Code here runs when the scene is first created but has not yet appeared on screen
-	print("Transition scene created")
+	-- Code here runs when the scene is first created but has not yet appeared on screen	
 	local bg = display.newRect( sceneGroup, 0, 0, 1000, 1000); --content width/heigh were not full screen for some reason
 	bg:setFillColor(0, 0, 0, 1);
 
