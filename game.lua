@@ -141,8 +141,7 @@ local function calcScore()
 		end
 		score = score + 2 ^ count
 	end
-	
-	print(score)
+		
 	return score
 end
 
@@ -151,13 +150,48 @@ local function hint()
 end
 
 local function solve()
-    local solution = {}
+	local solution = {}	
 
-    local function dfs(depth, maxDepth)
+	local function dfs(depth, maxDepth)
+		local indent = ""
+		for i = 1, depth do indent = indent .. "\t" end
+		
+		if depth > maxDepth then 
+			return calcScore()
+		end
+
+		local move = {from = 1, to = 1, score = -1}
+
+		for iFrom = 1, #tubes do
+			local fromTube = tubes[iFrom]
+			
+			if not isEmpty(fromTube) and not isSolved(fromTube) then
+				local drop = fromTube.drops[#fromTube.drops]
+
+				for iTo = 1, #tubes do 
+					local toTube = tubes[iTo]
+
+					if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
+						addDrop(removeDrop(fromTube), toTube)
+
+						print(indent, iFrom, iTo, "...")
+						local score = dfs(depth + 1, maxDepth)
+						print(indent, iFrom, iTo, score)
+
+						if score > move.score then 
+							move = { from = iFrom, to = iTo, score = score}
+						end
+					end
+				end
+			else
+				print(indent, iFrom, ("solved" and isSolved(fromTube)) or "empty")
+			end
+
+		end
 
     end
 
-    -- dfs(1, 3)
+    dfs(1, 3)
 end
 
 local function updateClock()
@@ -237,6 +271,7 @@ function scene:create( event )
     undoText:addEventListener("tap", undoMove)
 	resetText:addEventListener("tap", resetLevel)
 	hintText:addEventListener("tap", calcScore)
+	solveText:addEventListener("tap", solve)
 
     -- instaniate all of the tubes
         -- put in correct position
