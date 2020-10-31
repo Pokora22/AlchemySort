@@ -46,7 +46,7 @@ end
 
 local function updateText()
     timeRemainingText.text = "Time remaining: " .. timeRemaining
-	movesText.text = "Moves: " .. #moves	
+	movesText.text = "Moves: " .. #moves 
 end
 
 local function translateDrop(drop, x, y, animate, callback, time)
@@ -194,12 +194,7 @@ local function dfs(depth, maxDepth, score)
 					
 
 					if score > move.score then 
-						move = { from = iFrom, to = iTo, score = score}
-						--else break or return here to not pursue anything that gives lower score?
-					-- else
-						-- print( indent .. "from:" .. iFrom .. " to:" .. iTo .. " is a lower score. Returning" )
-						-- addDrop(removeDrop(toTube), fromTube)					
-					-- 	return move
+						move = { from = iFrom, to = iTo, score = score}						
 					end
 						
 					addDrop(removeDrop(toTube), fromTube)					
@@ -222,9 +217,12 @@ local function hint()
 end
 
 local function solve()	
-	local move = dfs(1, 2)	
-	if not isAllSolved() then 
-		addDrop(removeDrop(tubes[move.from], true, nil, 500), tubes[move.to], true, solve, 500)
+	local before = calcScore()
+	local move = dfs(1, 3)	
+
+	if not isAllSolved() then --and calcScore() == before then 
+		local drop = addDrop(removeDrop(tubes[move.from], true, nil, 500), tubes[move.to], true, solve, 500)
+		table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
 	end
 end
 
