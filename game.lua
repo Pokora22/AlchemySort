@@ -147,6 +147,16 @@ local function isValidMove(from, to)
     --is good if from top color is same as to top color
 end
 
+local function reverse(t)
+	local n = #t
+	local i = 1
+	while i < n do
+	  t[i],t[n] = t[n],t[i]
+	  i = i + 1
+	  n = n - 1
+	end
+  end
+
 local function bfs(moves)
 	if isAllSolved() then return end
 	if moves == nil then moves = {} end
@@ -250,8 +260,9 @@ end
 
 local function hint()
 	local moves = bfs()
+	reverse(moves)
 	if #moves > 0 then
-		local move = moves[1]
+		local move = moves[#moves]
 		print("\n\n")		
 		local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
 		hintUserText.text = hint
@@ -262,14 +273,38 @@ local function hint()
 	end
 end
 
-local function solve()	
-	local before = calcScore()
-	local move = dfs(1, 3)	
 
-	if not isAllSolved() then --and calcScore() == before then 
-		local drop = addDrop(removeDrop(tubes[move.from], true, nil, 500), tubes[move.to], true, solve, 500)
-		table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
+local function solve(solution, start)
+	if start == nil then start = true end
+
+	--Add flag to wait for when going through solution list
+	local animationFlag = false
+	local function finishAnimation()
+		animationFlag = false
 	end
+
+	if start then
+		solution = bfs()
+		-- reverse(solution)
+	end
+
+	-- if not isAllSolved() and #solution > 0 then
+	for i = 1, #solution do
+		--Loop in place while animation is playing
+		-- while animationFlag do
+			print(animationFlag)
+		-- end
+
+		local move = solution[i]
+		-- table.remove( solution )			
+		
+		--Flag animation ongoing
+		animationFlag = true
+		local drop = addDrop(removeDrop(tubes[move.from], true, nil, 500), tubes[move.to], true, finishAnimation, 500) --Turn animation flag false as a  onEnd callback
+		table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
+
+		--else go to win screen?
+	end					
 end
 
 local function animateSolve() 
