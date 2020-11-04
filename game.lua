@@ -147,13 +147,11 @@ local function isValidMove(from, to)
     --is good if from top color is same as to top color
 end
 
-local function bfs(iter, maxIter, score, moves)
-	if iter > maxIter then return nil end
+local function bfs(moves)
+	if isAllSolved() then return end
 	if moves == nil then moves = {} end
-
-	if score == nil then score = calcScore() end	
-	if iter == nil then iter = 1 end
-	local bestMove = {from = 0, to = 0, score = score}
+	
+	local bestMove = {from = 0, to = 0, score = calcScore()}
 
 	for iFrom = 1, #tubes do
 		for iTo = 1, #tubes do 
@@ -174,18 +172,18 @@ local function bfs(iter, maxIter, score, moves)
 		end
 	end
 
-	--We now have best scoring tube
+	--We now have best scoring tube	
 	table.insert(moves, bestMove)
-	print("Iter: " .. iter .. " best is from " .. bestMove.from .. " to " .. bestMove.to)
+	print("Adding move " .. bestMove.from .. " to " .. bestMove.to)
 
 	--Move as best and proceed on new setup
 	addDrop(removeDrop(tubes[bestMove.from]), tubes[bestMove.to])	
-	bfs(iter + 1, maxIter, bestMove.score, moves)
+	bfs(moves)
 	
 	--Rever the move
 	addDrop(removeDrop(tubes[bestMove.to]), tubes[bestMove.from])
 
-	return bestMove
+	return moves
 end
 
 local function dfs(depth, maxDepth, score)
@@ -251,9 +249,9 @@ local function dfs(depth, maxDepth, score)
 end
 
 local function hint()
-	local moves = bfs(1, 3)
+	local moves = bfs()
 	if #moves > 0 then
-		local move = moves[#moves]
+		local move = moves[1]
 		print("\n\n")		
 		local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
 		hintUserText.text = hint
