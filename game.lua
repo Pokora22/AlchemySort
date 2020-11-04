@@ -147,6 +147,47 @@ local function isValidMove(from, to)
     --is good if from top color is same as to top color
 end
 
+local function bfs(iter, maxIter, score, moves)
+	if iter > maxIter then return nil end
+	if moves == nil then moves = {} end
+
+	if score == nil then score = calcScore() end	
+	if iter == nil then iter = 1 end
+	local bestMove = {from = 0, to = 0, score = score}
+
+	for iFrom = 1, #tubes do
+		for iTo = 1, #tubes do 
+			local fromTube, toTube = tubes[iFrom], tubes[iTo]
+			if not isEmpty(fromTube) then
+				local drop = fromTube.drops[#fromTube.drops]
+
+				if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
+					addDrop(removeDrop(tubes[iFrom]), tubes[iTo])
+					local newScore = calcScore()
+					addDrop(removeDrop(tubes[iTo]), tubes[iFrom])
+
+					if newScore >= bestMove.score then 
+						bestMove = {from = iFrom, to = iTo, score = newScore}
+					end
+				end
+			end
+		end
+	end
+
+	--We now have best scoring tube
+	table.insert(moves, bestMove)
+	print("Iter: " .. iter .. " best is from " .. bestMove.from .. " to " .. bestMove.to)
+
+	--Move as best and proceed on new setup
+	addDrop(removeDrop(tubes[bestMove.from]), tubes[bestMove.to])	
+	bfs(iter + 1, maxIter, bestMove.score, moves)
+	
+	--Rever the move
+	addDrop(removeDrop(tubes[bestMove.to]), tubes[bestMove.from])
+
+	return bestMove
+end
+
 local function dfs(depth, maxDepth, score)
 	local indent = ""
 	for i = 1, depth do indent = indent .. "___ " end
@@ -210,10 +251,17 @@ local function dfs(depth, maxDepth, score)
 end
 
 local function hint()
-	local move = dfs(1, 3)
-	print("\n\n")
-	local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
-	hintUserText.text = hint
+	local moves = bfs(1, 3)
+	if #moves > 0 then
+		local move = moves[#moves]
+		print("\n\n")		
+		local hint = "Best move is from tube " .. move.from .. " to tube " .. move.to
+		hintUserText.text = hint
+	else
+		print("\n\n")
+		local hint = "Moves empty?"
+		hintUserText.text = hint
+	end
 end
 
 local function solve()	
@@ -224,6 +272,15 @@ local function solve()
 		local drop = addDrop(removeDrop(tubes[move.from], true, nil, 500), tubes[move.to], true, solve, 500)
 		table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
 	end
+end
+
+local function animateSolve() 
+	if #moves > 0 then
+		local from, to = moves[#moves].from, moves[#moves].to
+		table.remove( moves )
+		addDrop(removeDrop(from, to), animateSolve)
+	end
+
 end
 
 local function updateClock()
