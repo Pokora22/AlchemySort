@@ -34,7 +34,7 @@ local moves
 local timeRemaining
 local levelOver = false
 local movesText
-local undoText, resetText, hintText, solveText, timeRemainingText, hintUserText, hintUserText2, scoreText
+local undoText, resetText, hintText, solveText, timeRemainingText, hintUserText, scoreText
 local levelSeed
 local levelParams
 local gameTimer
@@ -123,7 +123,8 @@ local function addDrop(drop, tube, animate, callback, time)
     table.insert( tube.drops, drop ) --place and append different?
     local x, y = tube.x, tube.y + tube.height / 2 + 8 - 34 * #tube.drops
 	translateDrop(drop, x, y, animate, callback, time)
-	scoreText.text = calcScore()
+	--Uncomment to view score in game
+	-- scoreText.text = calcScore()
 end
 
 
@@ -288,6 +289,7 @@ end
 -- end
 
 local function hint()
+	if selectedDrop ~= nil then return end
 	local moves = bfs()
 	reverse(moves)
 	if #moves > 0 then
@@ -302,7 +304,31 @@ local function hint()
 	end
 end
 
+local function undoMove(animate)
+    if #moves > 0 and selectedDrop == nil then
+        local move = moves[#moves]
+
+        --Need to create the callback function first (inline doesn't wait for complete)
+        local function callAdd()
+            addDrop(move.drop, move.from, animate)
+        end
+
+        removeDrop(move.to, animate, callAdd)
+        -- addDrop(move.drop, move.from, true)
+
+        table.remove( moves, #moves )
+        updateText()
+    end
+end
+
 local function solve(solution, start)
+	--remove event listeners to avoid players messing with function
+	undoText:removeEventListener("tap", undoMove)
+	resetText:removeEventListener("tap", resetLevel)
+	hintText:removeEventListener("tap", hint)
+	solveText:removeEventListener("tap", solve)	
+
+	if selectedDrop ~= nil then return end
 	if start == nil then start = true end
 	if start then
 		solution = bfs()		
@@ -372,24 +398,6 @@ local function moveDrop( event )
     end
 end
 
-local function undoMove(animate)
-    if #moves > 0 and selectedDrop == nil then
-        local move = moves[#moves]
-
-        --Need to create the callback function first (inline doesn't wait for complete)
-        local function callAdd()
-            addDrop(move.drop, move.from, animate)
-        end
-
-        removeDrop(move.to, animate, callAdd)
-        -- addDrop(move.drop, move.from, true)
-
-        table.remove( moves, #moves )
-        updateText()
-    end
-end
-
-
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -412,16 +420,12 @@ function scene:create( event )
 	hintUserText = display.newText( sceneGroup, "", hintText.x, 40, native.systemFont, 14 )
 	hintUserText2 = display.newText( sceneGroup, "", hintText.x, 60, native.systemFont, 14 )
 	scoreText = display.newText( sceneGroup, "", movesText.x, 40, native.systemFont, 12 )
-
-	local function printScore()
-		print(calcScore())
-	end
+	
 
     undoText:addEventListener("tap", undoMove)
 	resetText:addEventListener("tap", resetLevel)
 	hintText:addEventListener("tap", hint)
-	solveText:addEventListener("tap", solve)
-	movesText:addEventListener("tap", printScore)
+	solveText:addEventListener("tap", solve)	
 
     -- instaniate all of the tubes
         -- put in correct position
