@@ -157,9 +157,15 @@ local function reverse(t)
 	end
   end
 
-local function bfs(moves)
+local function bfs(moves, iter)
 	if isAllSolved() then return end
-	if moves == nil then moves = {} end
+	if moves == nil then
+		moves = {} 
+		iter = 1
+	end	
+
+	if iter > 500 then return - 1 end
+	iter = iter + 1
 	
 	local bestMove = {from = 0, to = 0, score = calcScore()}
 
@@ -187,7 +193,7 @@ local function bfs(moves)
 
 	--Move as best and proceed on new setup
 	addDrop(removeDrop(tubes[bestMove.from]), tubes[bestMove.to])	
-	bfs(moves)
+	bfs(moves, iter)
 	
 	--Rever the move
 	addDrop(removeDrop(tubes[bestMove.to]), tubes[bestMove.from])
@@ -428,7 +434,9 @@ function scene:create( event )
             local drop = removeDrop(fromTube)
             addDrop(drop, toTube, false)
         end
-    end
+	end
+	
+	print(bfs())
 
     -- initialise game variables (moves, etc)
     moves = {}
