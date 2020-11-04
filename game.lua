@@ -16,6 +16,8 @@ local SOLVABLE_LIMIT = 500
 local tubes = { }
 local selectedDrop
 local fromTube
+local isSolvable
+local minMoves
 
 local colorsRGB = require("colorsRGB")
 local colors = {
@@ -172,7 +174,10 @@ local function bfs(moves, iter)
 		iter = 1
 	end	
 
-	if iter > SOLVABLE_LIMIT then return end
+	if iter > SOLVABLE_LIMIT then
+		isSolvable = false
+		return
+	end
 	iter = iter + 1
 	
 	local bestMove = {from = 0, to = 0, score = calcScore()}
@@ -196,8 +201,11 @@ local function bfs(moves, iter)
 		end
 	end
 
-	--Return if no good move left (unsolvable?)
-	if bestMove.from == 0 or bestMove.to == 0 then return end
+	--Return if no good move left (unsolvable safety net)
+	if bestMove.from == 0 or bestMove.to == 0 then 		
+		isSolvable = false
+		return 
+	end
 	--We now have best scoring tube	
 	table.insert(moves, bestMove)	
 
@@ -321,7 +329,8 @@ local function updateClock()
         updateText()
 		if(timeRemaining <= 0) then gameOver(0) end
 	else
-		gameOver(timeRemaining)
+		--Add score equal to time remaining + difference of minmoves vs actual moves * 50
+		gameOver(timeRemaining + math.floor((minMoves/#moves) * 50))
 	end
 end
 
@@ -426,11 +435,18 @@ function scene:create( event )
                 addDrop(drop, tube, false)
             end
         end
-	end
+	end	
 	
-	local solvable = true
-
-	repeat
+	--Add counter to try generating x levels before giving up
+	local tryCounter = 0	
+	repeat		
+		tryCounter = tryCounter + 1
+		if tryCounter > SOLVABLE_LIMIT then
+			print("No solvable levels found with these settings")
+			composer.gotoScene("menu");
+		end
+		
+		isSolvable = true
 		levelSeed = seed and seed or os.clock()
 		rng.randomseed(levelSeed)
 
@@ -443,23 +459,19 @@ function scene:create( event )
 			-- pick random source and destination tubes and move drop if allowed.
 			-- repeat based on nDifficulty
 		for k = 1, nDifficulty do
-			local fromTube = tubes[rng.random( #tubes )]
-			local toTube = tubes[rng.random( #tubes )]
+			local from, to = rng.random( #tubes ), rng.random( #tubes )
+			local fromTube = tubes[from]
+			local toTube = tubes[to]
 
 			if fromTube ~= toTube and not isEmpty(fromTube) and not isFull(toTube) then
 				local drop = removeDrop(fromTube)
-				addDrop(drop, toTube, false)
-				if not isValidMove(toTube, fromTube) then
-					-- print("Not solvable?")
-					solvable = false
-					--can break here to make things faster?
-				end
+				addDrop(drop, toTube, false)								
 			end
 		end
-	until true
-	
-	print(solvable and "Solvable" or "Not Solvable?")
-	print(#bfs()) --Record minimum moves to solve
+		minMoves = bfs()
+		--Check in case of nil
+		minMoves = minMoves and #minMoves or SOLVABLE_LIMIT
+	until isSolvable
 
     -- initialise game variables (moves, etc)
     moves = {}
