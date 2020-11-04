@@ -195,67 +195,67 @@ local function bfs(moves)
 	return moves
 end
 
-local function dfs(depth, maxDepth, score)
-	local indent = ""
-	for i = 1, depth do indent = indent .. "___ " end
+-- local function dfs(depth, maxDepth, score)
+-- 	local indent = ""
+-- 	for i = 1, depth do indent = indent .. "___ " end
 	
-	if score == nil then score = calcScore() end
-	local move = {from = 1, to = 1, score = score}
+-- 	if score == nil then score = calcScore() end
+-- 	local move = {from = 1, to = 1, score = score}
 
-	if depth > maxDepth then 
-		move = {from = 1, to = 1, score = calcScore()}		
-		return move
-	end	
+-- 	if depth > maxDepth then 
+-- 		move = {from = 1, to = 1, score = calcScore()}		
+-- 		return move
+-- 	end	
 
-	for iFrom = 1, #tubes do
-		local fromTube = tubes[iFrom]
+-- 	for iFrom = 1, #tubes do
+-- 		local fromTube = tubes[iFrom]
 		
-		if not isEmpty(fromTube) and not isSolved(fromTube) then				
-			local drop = fromTube.drops[#fromTube.drops]
+-- 		if not isEmpty(fromTube) and not isSolved(fromTube) then				
+-- 			local drop = fromTube.drops[#fromTube.drops]
 
-			for iTo = 1, #tubes do 
-				local toTube = tubes[iTo]
+-- 			for iTo = 1, #tubes do 
+-- 				local toTube = tubes[iTo]
 
-				if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
-					addDrop(removeDrop(fromTube), toTube)
+-- 				if iFrom ~= iTo and not isFull(toTube) and ( isEmpty(toTube) or ( not isEmpty(toTube) and toTube.drops[#toTube.drops].color == drop.color)) then
+-- 					addDrop(removeDrop(fromTube), toTube)
 
-					local newScore = calcScore()
-					if newScore < score then
-						print( indent .. "from:" .. iFrom .. " to:" .. iTo .. " is a lower score. Breaking" )
-						addDrop(removeDrop(toTube), fromTube)			
-						break
-					end
+-- 					local newScore = calcScore()
+-- 					if newScore < score then
+-- 						print( indent .. "from:" .. iFrom .. " to:" .. iTo .. " is a lower score. Breaking" )
+-- 						addDrop(removeDrop(toTube), fromTube)			
+-- 						break
+-- 					end
 
-					-- print(indent, "from:" .. iFrom, "to:" .. iTo, "...")
-					if depth ~= maxDepth then
-						print(indent .. "from:" .. iFrom, "to:" .. iTo, "score:" .. calcScore() )
-					end
+-- 					-- print(indent, "from:" .. iFrom, "to:" .. iTo, "...")
+-- 					if depth ~= maxDepth then
+-- 						print(indent .. "from:" .. iFrom, "to:" .. iTo, "score:" .. calcScore() )
+-- 					end
 
-					print(indent .. "Score before dfs: " .. score)
-					local score = dfs(depth + 1, maxDepth, score).score
+-- 					print(indent .. "Score before dfs: " .. score)
+-- 					local score = dfs(depth + 1, maxDepth, score).score
 
-					if depth == maxDepth then
-						print(indent .. "from:" .. iFrom, "to:" .. iTo, "score:" .. score .. " (max depth)")
-					else
-						print(indent .. "Best for batch from:" .. iFrom, "to:" .. iTo, "score:" .. score .. "\n")
-					end
+-- 					if depth == maxDepth then
+-- 						print(indent .. "from:" .. iFrom, "to:" .. iTo, "score:" .. score .. " (max depth)")
+-- 					else
+-- 						print(indent .. "Best for batch from:" .. iFrom, "to:" .. iTo, "score:" .. score .. "\n")
+-- 					end
 					
 
-					if score > move.score then 
-						move = { from = iFrom, to = iTo, score = score}						
-					end
+-- 					if score > move.score then 
+-- 						move = { from = iFrom, to = iTo, score = score}						
+-- 					end
 						
-					addDrop(removeDrop(toTube), fromTube)					
-				end					
-			end
-		else
-			print(indent .. "from:" .. iFrom, (isSolved(fromTube) and "solved") or "empty")
-		end			
-	end
+-- 					addDrop(removeDrop(toTube), fromTube)					
+-- 				end					
+-- 			end
+-- 		else
+-- 			print(indent .. "from:" .. iFrom, (isSolved(fromTube) and "solved") or "empty")
+-- 		end			
+-- 	end
 		
-	return move
+-- 	return move
 
-end
+-- end
 
 local function hint()
 	local moves = bfs()
@@ -272,30 +272,28 @@ local function hint()
 	end
 end
 
-local function sleep(n)
-	if n > 0 then os.execute("ping -n " .. tonumber(n+1) .. " localhost > NUL") end
-end
-
-
 local function solve(solution, start)
 	if start == nil then start = true end
 	if start then
 		solution = bfs()		
 	end
+		
+	local function autoSolved()
+		gameOver(0)
+	end
+
+	timer.performWithDelay(#solution * 500 + 2000, autoSolved);
 	
 	for i = 1, #solution do		
 		local move = solution[i]		
 
-		local function animate()
-			print("Current iteration: ", i)
+		local function animate()			
 			local drop = addDrop(removeDrop(tubes[move.from], true, nil, 200), tubes[move.to], true, nil, 200) --Turn animation flag false as a  onEnd callback
 			table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
 		end
 		
 		timer.performWithDelay((i - 1) * 500, animate);
-
-		--else go to win screen?		
-	end					
+	end		
 end
 
 local function updateClock()
