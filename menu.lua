@@ -9,7 +9,7 @@ local scene = composer.newScene()
 -- -----------------------------------------------------------------------------------
 
 local function gotoGame()
-	local levelParams = {5, 1, 400, 900}
+	local levelParams = {3, 1, 40, 900}
     composer.gotoScene( "game", { time=300, effect="zoomInOutFade", params = levelParams } )
 end
  

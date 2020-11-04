@@ -11,6 +11,7 @@ local scene = composer.newScene()
 local rng = require("rng")
 
 local FULL = 4  -- number of drops to full a tube
+local SOLVABLE_LIMIT = 500
 
 local tubes = { }
 local selectedDrop
@@ -142,9 +143,16 @@ local function removeDrop(tube, animate, callback, time)
 end
 
 
-local function isValidMove(from, to)
-    --is valid if from is not empty and to is not full
-    --is good if from top color is same as to top color
+local function isValidMove(from, to)    
+	--is valid if from top color is same as to top color or to is empty
+	if not isEmpty(from) then
+		if isEmpty(to) then return true end
+
+		local color = from.drops[#from.drops].color
+		if to.drops[#to.drops].color == color then return true end
+	end
+
+	return false
 end
 
 local function reverse(t)
@@ -164,7 +172,7 @@ local function bfs(moves, iter)
 		iter = 1
 	end	
 
-	if iter > 500 then return - 1 end
+	if iter > SOLVABLE_LIMIT then return end
 	iter = iter + 1
 	
 	local bestMove = {from = 0, to = 0, score = calcScore()}
@@ -188,8 +196,10 @@ local function bfs(moves, iter)
 		end
 	end
 
+	--Return if no good move left (unsolvable?)
+	if bestMove.from == 0 or bestMove.to == 0 then return end
 	--We now have best scoring tube	
-		table.insert(moves, bestMove)	
+	table.insert(moves, bestMove)	
 
 	--Move as best and proceed on new setup
 	addDrop(removeDrop(tubes[bestMove.from]), tubes[bestMove.to])	
@@ -294,8 +304,11 @@ local function solve(solution, start)
 		local move = solution[i]		
 
 		local function animate()			
-			local drop = addDrop(removeDrop(tubes[move.from], true, nil, 200), tubes[move.to], true, nil, 200) --Turn animation flag false as a  onEnd callback
-			table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
+			local function registerMove()
+				table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} ) --drop will be nil but irrelevant as this will game over
+			end
+
+			local drop = addDrop(removeDrop(tubes[move.from], true, registerMove, 200), tubes[move.to], true, nil, 200) --Register move as a  onEnd callback
 		end
 		
 		timer.performWithDelay((i - 1) * 500, animate);
@@ -413,30 +426,40 @@ function scene:create( event )
                 addDrop(drop, tube, false)
             end
         end
-    end
-
-    levelSeed = seed and seed or 42
-	rng.randomseed(levelSeed)
-
-
-	levelParams = {unpack(event.params)}
-	table.insert(levelParams, levelSeed)
-
-    -- using nDifficulty randomise the starting position
-       -- possible algorithm:
-          -- pick random source and destination tubes and move drop if allowed.
-          -- repeat based on nDifficulty
-    for k = 1, nDifficulty do
-        local fromTube = tubes[rng.random( #tubes )]
-        local toTube = tubes[rng.random( #tubes )]
-
-        if fromTube ~= toTube and not isEmpty(fromTube) and not isFull(toTube) then
-            local drop = removeDrop(fromTube)
-            addDrop(drop, toTube, false)
-        end
 	end
 	
-	print(bfs())
+	local solvable = true
+
+	repeat
+		levelSeed = seed and seed or os.clock()
+		rng.randomseed(levelSeed)
+
+
+		levelParams = {unpack(event.params)}
+		table.insert(levelParams, levelSeed)
+
+		-- using nDifficulty randomise the starting position
+		-- possible algorithm:
+			-- pick random source and destination tubes and move drop if allowed.
+			-- repeat based on nDifficulty
+		for k = 1, nDifficulty do
+			local fromTube = tubes[rng.random( #tubes )]
+			local toTube = tubes[rng.random( #tubes )]
+
+			if fromTube ~= toTube and not isEmpty(fromTube) and not isFull(toTube) then
+				local drop = removeDrop(fromTube)
+				addDrop(drop, toTube, false)
+				if not isValidMove(toTube, fromTube) then
+					-- print("Not solvable?")
+					solvable = false
+					--can break here to make things faster?
+				end
+			end
+		end
+	until true
+	
+	print(solvable and "Solvable" or "Not Solvable?")
+	print(#bfs()) --Record minimum moves to solve
 
     -- initialise game variables (moves, etc)
     moves = {}
