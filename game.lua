@@ -145,13 +145,19 @@ local function removeDrop(tube, animate, callback, time)
 end
 
 
+--Unused TODO: Make it useful?
 local function isValidMove(from, to)    
 	--is valid if from top color is same as to top color or to is empty
-	if not isEmpty(from) then
-		if isEmpty(to) then return true end
+	if from == nil then 
+		local color = selectedDrop.color
+		if isEmpty(to) or (not isFull(to) and to.drops[#to.drops].color == color) then return true end
+	else
+		if not isEmpty(from) then
+			if isEmpty(to) then return true end
 
-		local color = from.drops[#from.drops].color
-		if to.drops[#to.drops].color == color then return true end
+			local color = from.drops[#from.drops].color
+			if to.drops[#to.drops].color == color then return true end
+		end
 	end
 
 	return false
@@ -349,15 +355,20 @@ local function moveDrop( event )
     if selectedDrop == nil and not isEmpty(tube) then
         selectedDrop, fromTube = removeDrop(tube, true), tube
 
-    elseif selectedDrop ~= nil and not isFull(tube) then
-        --Don't add moves if moving to same tube
-        if tube ~= fromTube then
-            table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
-        end
-        addDrop(selectedDrop, tube, true)
-		selectedDrop, fromTube = nil
+    elseif selectedDrop ~= nil then        
+		if tube == fromTube or isValidMove(nil, tube) then
+			--Make move			
+			addDrop(selectedDrop, tube, true)			     
+			if tube ~= fromTube then			
+				--Count move if not returning to same tube				
+				table.insert( moves, {from = fromTube, to = tube, drop = selectedDrop})
+			end
+			selectedDrop, fromTube = nil       
+		end
+
 		hintUserText.text = ""
-        if isAllSolved() then levelOver = true end
+		if isAllSolved() then levelOver = true end
+		updateText()
     end
 end
 
