@@ -183,8 +183,7 @@ local function bfs(moves)
 	end
 
 	--We now have best scoring tube	
-	table.insert(moves, bestMove)
-	print("Adding move " .. bestMove.from .. " to " .. bestMove.to)
+		table.insert(moves, bestMove)	
 
 	--Move as best and proceed on new setup
 	addDrop(removeDrop(tubes[bestMove.from]), tubes[bestMove.to])	
@@ -273,47 +272,30 @@ local function hint()
 	end
 end
 
+local function sleep(n)
+	if n > 0 then os.execute("ping -n " .. tonumber(n+1) .. " localhost > NUL") end
+end
+
 
 local function solve(solution, start)
 	if start == nil then start = true end
-
-	--Add flag to wait for when going through solution list
-	local animationFlag = false
-	local function finishAnimation()
-		animationFlag = false
-	end
-
 	if start then
-		solution = bfs()
-		-- reverse(solution)
+		solution = bfs()		
 	end
+	
+	for i = 1, #solution do		
+		local move = solution[i]		
 
-	-- if not isAllSolved() and #solution > 0 then
-	for i = 1, #solution do
-		--Loop in place while animation is playing
-		-- while animationFlag do
-			print(animationFlag)
-		-- end
-
-		local move = solution[i]
-		-- table.remove( solution )			
+		local function animate()
+			print("Current iteration: ", i)
+			local drop = addDrop(removeDrop(tubes[move.from], true, nil, 200), tubes[move.to], true, nil, 200) --Turn animation flag false as a  onEnd callback
+			table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
+		end
 		
-		--Flag animation ongoing
-		animationFlag = true
-		local drop = addDrop(removeDrop(tubes[move.from], true, nil, 500), tubes[move.to], true, finishAnimation, 500) --Turn animation flag false as a  onEnd callback
-		table.insert( moves, {from = tubes[move.from], to = tubes[move.to], drop = drop} )
+		timer.performWithDelay((i - 1) * 500, animate);
 
-		--else go to win screen?
+		--else go to win screen?		
 	end					
-end
-
-local function animateSolve() 
-	if #moves > 0 then
-		local from, to = moves[#moves].from, moves[#moves].to
-		table.remove( moves )
-		addDrop(removeDrop(from, to), animateSolve)
-	end
-
 end
 
 local function updateClock()
